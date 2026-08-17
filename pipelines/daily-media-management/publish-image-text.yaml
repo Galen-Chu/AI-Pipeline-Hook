@@ -1,0 +1,11 @@
+# Pipeline 3 (publish-image-text) · daily-media-management
+name: daily-media-management-publish-image-text
+version: 0.1.0
+status: draft
+trigger:
+  type: cron
+  environment: claude-code
+description: Placeholder — to be implemented per architecture spec.
+steps: []
+output:
+  destination: external

@@ -1,0 +1,17 @@
+# Pipeline 4 (coding) · 個人學習
+name: daily-ego-learning-coding
+version: 0.1.0
+status: draft
+
+trigger:
+  type: cron
+  environment: claude-code
+
+description: >
+  Placeholder — uses shared SM-2 progress store schema.
+
+steps: []
+
+output:
+  destination: obsidian
+  path: "Learning/coding/{{date}}.md"

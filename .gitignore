@@ -1,0 +1,20 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+*.egg-info/
+
+# State data (never commit)
+data/
+*.sqlite3
+*.db
+
+# Media (stored externally: S3/R2)
+media/
+
+# OS
+.DS_Store
+Thumbs.db

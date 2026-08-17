@@ -1,0 +1,71 @@
+# Pipeline 2: daily-news-report · 五大領域新聞知識彙整
+# Trigger: Claude.ai scheduled task, daily 06:30
+# Has state: no (pure content generation)
+
+name: daily-news-report
+version: 0.1.0
+status: draft
+
+trigger:
+  type: claude-scheduled
+  schedule: "daily 06:30"
+  environment: claude-ai  # Pure content, no local state
+
+description: >
+  五大知識領域（地緣政治／巨觀經濟與金融市場／資訊科技與 AI／
+  生醫科技／硬體工程與能源），Top 5-7 議題，What/Why/So What
+  三段式，A4 單頁排版。
+
+domains:
+  - geopolitics          # 地緣政治
+  - macro-finance        # 巨觀經濟與金融市場
+  - tech-ai             # 資訊科技與 AI
+  - biotech             # 生醫科技
+  - hardware-energy     # 硬體工程與能源
+
+steps:
+  - id: scrape
+    type: claude-skill
+    skill: web-scraping-patterns
+    description: 抓取五大領域新聞
+
+  - id: assess_reliability
+    type: claude-skill
+    skill: source-reliability-assessment
+    description: 過濾不可信來源
+
+  - id: deduplicate
+    type: claude
+    description: 降噪去重
+
+  - id: rank
+    type: claude
+    description: 重要度評級，選 Top 5-7
+
+  - id: summarize
+    type: claude-skill
+    skill: content-summarization
+    description: What/Why/So What 三段式
+
+  - id: academic_review
+    type: claude-skill
+    skill: academic-citation-review
+    condition: content contains academic sources
+    description: 學術類另加引用審查
+
+  - id: format_output
+    type: claude-skill
+    skill: obsidian-note-conventions
+    description: A4 單頁排版，存入 vault
+
+output:
+  destination: obsidian
+  path: "News/{{date}}.md"
+  format: A4 single page
+
+skills:
+  - web-scraping-patterns
+  - source-reliability-assessment
+  - content-summarization
+  - obsidian-note-conventions
+  - academic-citation-review  # Conditional

@@ -1,0 +1,66 @@
+# Pipeline 1: daily-job-schedule · 個人行程/任務彙整
+# Trigger: cron, weekdays 07:30
+# Has state: yes (write-back prevents duplicate generation)
+
+name: daily-job-schedule
+version: 0.1.0
+status: draft
+
+trigger:
+  type: cron
+  schedule: "30 7 * * 1-5"  # Weekdays 07:30
+  environment: claude-code  # Requires local repo/Obsidian access
+
+description: >
+  彙整今日行程與待辦：Google Calendar 事件、Notion 任務、GitHub
+  assigned issues/PRs。判斷負荷分類（HEAVY/NORMAL/OPEN）、排優先序、
+  建議深度工作時段，寫入 Obsidian Daily note。
+
+sources:
+  - name: google-calendar
+    type: rest-api
+    endpoint: https://www.googleapis.com/calendar/v3/calendars/primary/events
+    auth: GOOGLE_OAUTH_REFRESH_TOKEN
+    fetch: today's events
+    classify: meeting vs deep-work blocks
+
+  - name: notion
+    type: rest-api
+    endpoint: https://api.notion.com/v1/databases/{database_id}/query
+    auth: NOTION_INTEGRATION_TOKEN
+    fetch: "Tasks where assignee=me AND status!=Done AND due<=today"
+
+  - name: github
+    type: cli
+    command: gh search issues --assignee @me --state open
+    auth: GITHUB_TOKEN
+    fetch: assigned issues + review-requested PRs
+
+steps:
+  - id: fetch_sources
+    type: script
+    description: 機械抓取三個來源，合併為 JSON
+
+  - id: generate_note
+    type: claude
+    prompt: |
+      根據以下 JSON 資料，排定今日優先序並寫入 Daily note。
+      負荷分類：HEAVY(≥5h會議/3+群聚) / NORMAL / OPEN
+      優先序：review-requested PR > 今日到期任務 > 一般 assigned > 無 due date
+      輸出結構：行事曆總覽 → 待處理任務 → 建議深度工作時段
+
+  - id: write_back
+    type: script
+    description: 寫入 frontmatter pipeline_status=generated
+
+output:
+  destination: obsidian
+  path: "Daily/{{date}}.md"
+  frontmatter:
+    pipeline_status: generated
+    generated_at: "{{timestamp}}"
+    sources: [google-calendar, notion, github]
+
+skills:
+  - obsidian-note-conventions
+  - test-script-conventions

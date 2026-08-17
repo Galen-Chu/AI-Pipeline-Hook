@@ -1,0 +1,17 @@
+# Pipeline 5 (astrology) · 每日命理
+name: daily-self-awareness-astrology
+version: 0.1.0
+status: draft
+
+trigger:
+  type: claude-scheduled
+  environment: claude-ai
+
+description: >
+  Placeholder — uses shared birth-profile.yaml as input.
+
+steps: []
+
+output:
+  destination: obsidian
+  path: "Awareness/astrology/{{date}}.md"

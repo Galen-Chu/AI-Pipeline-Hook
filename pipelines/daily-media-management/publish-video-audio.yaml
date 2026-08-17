@@ -1,0 +1,11 @@
+# Pipeline 3 (publish-video-audio) · daily-media-management
+name: daily-media-management-publish-video-audio
+version: 0.1.0
+status: draft
+trigger:
+  type: cron
+  environment: claude-code
+description: Placeholder — to be implemented per architecture spec.
+steps: []
+output:
+  destination: external
