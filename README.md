@@ -107,6 +107,15 @@ python runner/pipeline_runner.py --pipeline pipelines/daily-job-schedule.yaml
 
 ---
 
-## 📄 License
+## 📝 License
 
-MIT — see [LICENSE](LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👤 Author
+
+**Galen Chu**
+
+- GitHub: [@Galen-Chu](https://github.com/Galen-Chu)
+- LinkedIn: [Galen Chu](https://www.linkedin.com/in/galen-chu-203590b5/)
