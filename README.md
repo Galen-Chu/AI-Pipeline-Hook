@@ -96,6 +96,7 @@ python runner/pipeline_runner.py --pipeline pipelines/daily-job-schedule.yaml
 ---
 
 ## 🛠️ Setup Checklist
+
 - [ ] Obsidian vault 路徑
 - [ ] Notion Tasks 欄位命名
 - [ ] Google Calendar / Notion / GitHub 認證憑證
