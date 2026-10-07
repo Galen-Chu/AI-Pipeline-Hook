@@ -83,8 +83,9 @@ class TestIsDue:
         assert is_due(self.SCHEDULE, None, datetime(2026, 10, 7, 9, 0))
 
     def test_ran_after_fire_not_due(self):
-        # 09:56 local (= 01:56 UTC) is after today's 07:30 fire
-        assert not is_due(self.SCHEDULE, "2026-10-07T01:56:00+00:00", datetime(2026, 10, 7, 9, 0))
+        # 23:00Z lands after 07:30 local on Oct 7 in every timezone, so this
+        # assertion holds on both local (UTC+8) and UTC CI runners
+        assert not is_due(self.SCHEDULE, "2026-10-07T23:00:00+00:00", datetime(2026, 10, 7, 9, 0))
 
     def test_ran_before_fire_is_due(self):
         assert is_due(self.SCHEDULE, "2026-10-06T22:00:00+00:00", datetime(2026, 10, 7, 9, 0))
