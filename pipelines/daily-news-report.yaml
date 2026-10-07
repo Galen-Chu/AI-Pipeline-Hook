@@ -24,9 +24,11 @@ domains:
   - hardware-energy     # 硬體工程與能源
 
 steps:
+  # 啟用前環境設定：下列 skills 需先安裝於 Claude Code 環境（.claude/skills/ 或 plugin）
   - id: scrape
     type: claude-skill
     skill: web-scraping-patterns
+    timeout: 900
     description: 抓取五大領域新聞
 
   - id: assess_reliability
@@ -45,12 +47,14 @@ steps:
   - id: summarize
     type: claude-skill
     skill: content-summarization
+    timeout: 900
     description: What/Why/So What 三段式
 
   - id: academic_review
     type: claude-skill
     skill: academic-citation-review
-    condition: content contains academic sources
+    # v1 條件式步驟僅支援 env:VAR；預設關閉，設 ENABLE_ACADEMIC_REVIEW=1 啟用
+    condition: env:ENABLE_ACADEMIC_REVIEW
     description: 學術類另加引用審查
 
   - id: format_output

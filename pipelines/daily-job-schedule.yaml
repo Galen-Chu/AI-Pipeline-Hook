@@ -17,6 +17,7 @@ description: >
   建議深度工作時段，寫入 Obsidian Daily note。
 
 sources:
+  # 抓取邏輯實作於 scripts/fetch_sources.py（未設定的來源標記 not_configured）
   - name: google-calendar
     type: rest-api
     endpoint: https://www.googleapis.com/calendar/v3/calendars/primary/events
@@ -31,29 +32,43 @@ sources:
     fetch: "Tasks where assignee=me AND status!=Done AND due<=today"
 
   - name: github
-    type: cli
-    command: gh search issues --assignee @me --state open
+    type: rest-api
+    endpoint: https://api.github.com/search/issues
     auth: GITHUB_TOKEN
     fetch: assigned issues + review-requested PRs
 
 steps:
   - id: fetch_sources
     type: script
-    description: 機械抓取三個來源，合併為 JSON
+    script: python scripts/fetch_sources.py --output {{run_dir}}/fetch_sources.json
+    timeout: 120
+    description: >
+      機械抓取三個來源合併為 JSON。未設定憑證的來源標記 not_configured，
+      骨架模式可整條跑通（啟用前環境設定見 config/.env.template）。
 
   - id: generate_note
     type: claude
+    timeout: 600
+    allowed_tools: Read,Write
+    description: >
+      排優先序並產生 Daily note，寫入 run dir。frontmatter write-back 由
+      hooks/post_run.sh 負責（OBSIDIAN_VAULT_PATH 設定時同步搬入 vault）。
     prompt: |
-      根據以下 JSON 資料，排定今日優先序並寫入 Daily note。
-      負荷分類：HEAVY(≥5h會議/3+群聚) / NORMAL / OPEN
-      優先序：review-requested PR > 今日到期任務 > 一般 assigned > 無 due date
-      輸出結構：行事曆總覽 → 待處理任務 → 建議深度工作時段
+      用 Read 工具讀取 {{run_dir}}/fetch_sources.json 的 JSON 資料，
+      依以下規則產生今日的 Obsidian Daily note（Markdown）：
 
-  - id: write_back
-    type: script
-    description: 寫入 frontmatter pipeline_status=generated
+      1. Frontmatter：created（{{date}}）、tags: [daily-note, worklog, worklog/job]、
+         aliases: []、pipeline_status: pending、generated_at、sources（實際有資料的來源）
+      2. 負荷分類：HEAVY（≥5h 會議或 3+ 群聚）／NORMAL／OPEN
+      3. 優先序：review-requested PR ＞ 今日到期任務 ＞ 一般 assigned ＞ 無 due date
+      4. 輸出結構：行事曆總覽 → 待處理任務 → 建議深度工作時段
+      5. 來源狀態為 not_configured 或 error 時，在筆記頂部註明
+         「⚠ 部分來源未設定或失敗」並列出各來源狀態
+
+      完成後用 Write 工具將完整筆記寫入 {{run_dir}}/daily-note.md。
 
 output:
+  # frontmatter 的 pipeline_status/generated_at 由 hooks/post_run.sh 寫回
   destination: obsidian
   path: "Daily/{{date}}.md"
   frontmatter:
