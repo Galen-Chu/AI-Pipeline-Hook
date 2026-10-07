@@ -24,6 +24,8 @@ Features:
 Usage:
     python runner/pipeline_runner.py --pipeline pipelines/daily-job-schedule.yaml
     python runner/pipeline_runner.py --pipeline pipelines/daily-job-schedule.yaml --dry-run
+    python runner/pipeline_runner.py --due     # run every cron pipeline whose time has come
+    python runner/pipeline_runner.py --list    # show pipelines, schedules and due status
 """
 import argparse
 import json
@@ -45,6 +47,11 @@ try:
     from dotenv import load_dotenv
 except ImportError:  # python-dotenv optional — .env just won't auto-load
     load_dotenv = None
+
+try:  # importable both as `python runner/pipeline_runner.py` and as a package module
+    from runner.cron_schedule import is_due
+except ImportError:
+    from cron_schedule import is_due
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "hooks"
@@ -408,6 +415,97 @@ class PipelineRunner:
             json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+# ------------------------------------------------------------------ scheduler
+
+def discover_pipelines(pipelines_dir: str | Path) -> list[tuple[Path, dict]]:
+    """All pipeline YAMLs under pipelines_dir with a name and steps key
+    (placeholders with empty steps are included; callers filter)."""
+    found = []
+    for path in sorted(Path(pipelines_dir).rglob("*.yaml")):
+        try:
+            with open(path, encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            print(f"  WARN: skipping unparseable {path}: {e}")
+            continue
+        if not isinstance(cfg, dict) or "name" not in cfg or "steps" not in cfg:
+            continue
+        found.append((path, cfg))
+    return found
+
+
+def read_last_run(data_dir: Path, pipeline_name: str) -> str | None:
+    state_file = Path(data_dir) / "last_runs" / f"{pipeline_name}.json"
+    if not state_file.exists():
+        return None
+    try:
+        return json.loads(state_file.read_text(encoding="utf-8")).get("last_run")
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _resolve_data_dir(args) -> Path:
+    return Path(args.data_dir or os.environ.get(DATA_DIR_ENV) or (REPO_ROOT / "data"))
+
+
+def _cron_trigger(cfg: dict) -> str:
+    trigger = cfg.get("trigger") or {}
+    return str(trigger.get("schedule", "")) if trigger.get("type") == "cron" else ""
+
+
+def cmd_list(args) -> int:
+    data_dir = _resolve_data_dir(args)
+    now = datetime.now().astimezone()
+
+    print(f"\n  {'Pipeline':<50} {'Trigger':<16} {'Schedule':<14} Due")
+    print(f"  {'-'*50} {'-'*16} {'-'*14} {'-'*10}")
+    for _path, cfg in discover_pipelines(args.pipelines_dir):
+        trigger = cfg.get("trigger") or {}
+        sched = _cron_trigger(cfg)
+        due = ""
+        if sched:
+            try:
+                due = "due" if is_due(sched, read_last_run(data_dir, cfg["name"]), now) else "-"
+            except ValueError as e:
+                due = f"! {e}"
+        state = "placeholder" if not cfg["steps"] else str(cfg.get("status", "draft"))
+        print(f"  {cfg['name']:<50} {trigger.get('type', '?'):<16} {sched or '-':<14} {due or state}")
+    print()
+    return 0
+
+
+def cmd_due(args) -> int:
+    data_dir = _resolve_data_dir(args)
+    now = datetime.now().astimezone()
+
+    due_pipelines = []
+    for path, cfg in discover_pipelines(args.pipelines_dir):
+        sched = _cron_trigger(cfg)
+        if not sched or not cfg["steps"]:
+            continue
+        try:
+            if is_due(sched, read_last_run(data_dir, cfg["name"]), now):
+                due_pipelines.append((path, cfg["name"]))
+        except ValueError as e:
+            print(f"  WARN: {cfg['name']} has invalid schedule '{sched}': {e}")
+
+    if not due_pipelines:
+        print("  No pipelines due.")
+        return 0
+
+    failed = []
+    for path, name in due_pipelines:
+        print(f"  → {name} is due — running\n")
+        summary = PipelineRunner(path, args.dry_run, args.data_dir).run()
+        if summary["status"] == "failed":
+            failed.append(name)
+
+    if failed:
+        print(f"  Failed pipelines: {', '.join(failed)}")
+        return 1
+    return 0
+
+
 def main():
     if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         try:
@@ -420,12 +518,22 @@ def main():
 
     parser = argparse.ArgumentParser(description="Pipeline Runner")
     parser.add_argument("--pipeline", help="Path to pipeline YAML")
+    parser.add_argument("--due", action="store_true",
+                        help="Run every cron-triggered pipeline whose schedule fired since its last run")
+    parser.add_argument("--list", action="store_true", dest="list_pipelines",
+                        help="List pipelines with trigger and due status")
+    parser.add_argument("--pipelines-dir", default=str(REPO_ROOT / "pipelines"),
+                        help="Pipelines directory for --due/--list (default: <repo>/pipelines)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would run")
     parser.add_argument("--data-dir", help=f"Data directory (default: ${{{DATA_DIR_ENV}}} or <repo>/data)")
     args = parser.parse_args()
 
+    if args.list_pipelines:
+        sys.exit(cmd_list(args))
+    if args.due:
+        sys.exit(cmd_due(args))
     if not args.pipeline:
-        parser.error("--pipeline is required")
+        parser.error("need one of: --pipeline, --due, --list")
 
     try:
         runner = PipelineRunner(args.pipeline, args.dry_run, args.data_dir)
