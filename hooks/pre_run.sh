@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pre-run hook · 執行前防呆檢查
-# Called by pipeline_runner.py before each step
+# Called by pipeline_runner.py before each step with: <pipeline_name> <step_id>
+# Exit codes: 0 = proceed | 10 = skip pipeline (already done) | other = warn (non-blocking)
 
 set -euo pipefail
 
@@ -20,7 +21,7 @@ if [[ -n "${OBSIDIAN_VAULT_PATH:-}" ]] && [[ "$PIPELINE_NAME" == "daily-job-sche
     DAILY_NOTE="${OBSIDIAN_VAULT_PATH}/Daily/${TODAY}.md"
     if [[ -f "$DAILY_NOTE" ]] && grep -q "pipeline_status: generated" "$DAILY_NOTE" 2>/dev/null; then
         log "SKIP: Daily note already generated for ${TODAY}"
-        exit 0
+        exit 10  # HOOK_SKIP_CODE — runner marks the pipeline as skipped
     fi
 fi
 

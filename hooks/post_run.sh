@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Post-run hook · 執行後 write-back
-# Called by pipeline_runner.py after all steps complete
+# Called by pipeline_runner.py after all steps complete with:
+#   <pipeline_name> <status: generated|failed|skipped> <output_path>
+# <output_path> is the vault file when OBSIDIAN_VAULT_PATH is set,
+# otherwise the in-repo run artifact (skeleton mode).
 
 set -euo pipefail
 
