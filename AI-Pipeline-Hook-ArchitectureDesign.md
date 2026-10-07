@@ -281,6 +281,12 @@ review-scheduler 只認 schema 欄位、不涉入主題內容，新增主題只�
 
 ## 九、開發前待確認清單
 
+> **v1 骨架現況（2026-10）**：runner 已完成（hooks 接線、`.env` 載入、step 間 artifact
+> 傳遞、`--due` 單一排程進入點、pytest 37 項＋CI）。Pipeline 1 已可整條跑通：未設定
+> 憑證時 `scripts/fetch_sources.py` 以 `not_configured` 降級，**正式啟用前需完成下方
+> 環境設定**（詳見 README「啟用前環境設定」）。出生資料模板已移至
+> `config/birth-profile.template.yaml`（真實檔 `config/birth-profile.yaml` 不進 repo）。
+
 - [ ] Obsidian vault 實際路徑
 - [ ] Notion Tasks 資料庫欄位命名（status/due date）
 - [ ] Google Calendar / Notion / GitHub 認證憑證申請與存放位置（`.env`，不進 repo）

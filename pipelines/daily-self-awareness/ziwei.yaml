@@ -8,7 +8,7 @@ trigger:
   environment: claude-ai
 
 description: >
-  Placeholder — uses shared birth-profile.yaml as input.
+  Placeholder — input: config/birth-profile.yaml (啟用前需填寫，模板見 config/birth-profile.template.yaml).
 
 steps: []
 

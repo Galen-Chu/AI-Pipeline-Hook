@@ -1,0 +1,22 @@
+# 共用出生資料 · Shared Birth Profile（模板）
+# 所有 daily-self-awareness 子管線共用此輸入
+#
+# 啟用前環境設定：
+#   1. 複製本檔為 config/birth-profile.yaml（該檔已被 .gitignore 排除，不會進 repo）
+#   2. 填入真實出生資料後，daily-self-awareness 各子管線即可讀取
+#
+# 此模板不含任何個人資料，可安全 commit 到公開 repo。
+
+# birth_date: "YYYY-MM-DD"
+# birth_time: "HH:MM"  (24-hour, local time at birth place)
+# birth_location: "City, Country"
+# birth_latitude: 25.0330
+# birth_longitude: 121.5654
+# birth_timezone: "Asia/Taipei"
+
+birth_date: ""
+birth_time: ""
+birth_location: ""
+birth_latitude: null
+birth_longitude: null
+birth_timezone: "Asia/Taipei"

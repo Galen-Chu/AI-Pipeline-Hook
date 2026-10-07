@@ -1,6 +1,9 @@
 # Environment
 .env
 
+# Personal data (templates only — real files stay local)
+config/birth-profile.yaml
+
 # Python
 __pycache__/
 *.py[cod]
