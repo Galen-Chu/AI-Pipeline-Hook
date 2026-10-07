@@ -81,7 +81,7 @@ python runner/pipeline_runner.py --due
 python runner/pipeline_runner.py --list   # 檢視清單與到期狀態
 ```
 
-排程設定範例（`--due` 每 10 分鐘檢查一次即可，到期判斷由 runner 负责）：
+排程設定範例（`--due` 每 10 分鐘檢查一次即可，到期判斷由 runner 負責）：
 
 ```bash
 # Linux/macOS — crontab -e
