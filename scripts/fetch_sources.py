@@ -31,8 +31,8 @@ def fetch_google_calendar(now: datetime) -> dict:
     client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
     refresh_token = os.environ.get("GOOGLE_OAUTH_REFRESH_TOKEN")
     if not (client_id and client_secret and refresh_token):
-        return {"status": "not_configured",
-                "reason": "missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_OAUTH_REFRESH_TOKEN"}
+        return {"status": "not_configured", "reason":
+                "missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_OAUTH_REFRESH_TOKEN"}
 
     token_resp = requests.post(
         "https://oauth2.googleapis.com/token",
@@ -124,7 +124,7 @@ FETCHERS = {
 }
 
 
-def main():
+def main(argv: list[str] | None = None):
     if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
@@ -133,7 +133,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Fetch Pipeline 1 sources into one JSON artifact")
     parser.add_argument("--output", required=True, help="Path of the merged JSON artifact")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     now = datetime.now().astimezone()
     sources = {}

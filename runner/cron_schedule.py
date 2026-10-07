@@ -68,7 +68,7 @@ def parse_cron(expr: str) -> dict[str, set[int]]:
     if len(fields) != 5:
         raise ValueError(f"cron expression must have 5 fields, got {len(fields)}: '{expr}'")
     spec = {}
-    for value, (name, low, high) in zip(fields, FIELD_RANGES):
+    for value, (name, low, high) in zip(fields, FIELD_RANGES, strict=True):
         spec[name] = _parse_field(value, low, high, normalize_dow=(name == "dow"))
     return spec
 

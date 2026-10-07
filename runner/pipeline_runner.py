@@ -34,7 +34,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 try:
@@ -79,12 +79,13 @@ class PipelineRunner:
         self.pipeline_path = Path(pipeline_path)
         self.dry_run = dry_run
         self.config = self._load_config()
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
         self.name = self.config["name"]
 
         data_dir = data_dir or os.environ.get(DATA_DIR_ENV) or (REPO_ROOT / "data")
         self.data_dir = Path(data_dir)
-        self.run_dir = self.data_dir / "runs" / self.name / self.start_time.strftime("%Y%m%d_%H%M%S")
+        stamp = self.start_time.strftime("%Y%m%d_%H%M%S")
+        self.run_dir = self.data_dir / "runs" / self.name / stamp
 
         now_local = datetime.now().astimezone()
         self.context = {
@@ -301,7 +302,8 @@ class PipelineRunner:
 
         if skill_mode:
             skill = step.get("skill", "")
-            base_prompt = self.render(step.get("prompt", step.get("description", f"Use skill: {skill}")))
+            fallback = step.get("prompt", step.get("description", f"Use skill: {skill}"))
+            base_prompt = self.render(fallback)
             prompt = f"/{skill} {base_prompt}"
         else:
             prompt = self.render(step.get("prompt", ""))
@@ -379,7 +381,7 @@ class PipelineRunner:
         if status == "ok" and failed:
             status = "failed"
 
-        end_time = datetime.now(timezone.utc)
+        end_time = datetime.now(UTC)
         summary = {
             "pipeline": self.name,
             "status": status,
@@ -410,7 +412,9 @@ class PipelineRunner:
         """Track last-run time for the scheduler (--due)."""
         state_dir = self.data_dir / "last_runs"
         state_dir.mkdir(parents=True, exist_ok=True)
-        state = {"pipeline": self.name, "last_run": summary["finished"], "status": summary["status"]}
+        state = {"pipeline": self.name,
+                 "last_run": summary["finished"],
+                 "status": summary["status"]}
         (state_dir / f"{self.name}.json").write_text(
             json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -469,7 +473,8 @@ def cmd_list(args) -> int:
             except ValueError as e:
                 due = f"! {e}"
         state = "placeholder" if not cfg["steps"] else str(cfg.get("status", "draft"))
-        print(f"  {cfg['name']:<50} {trigger.get('type', '?'):<16} {sched or '-':<14} {due or state}")
+        due_col = due or state
+        print(f"  {cfg['name']:<50} {trigger.get('type', '?'):<16} {sched or '-':<14} {due_col}")
     print()
     return 0
 
@@ -519,13 +524,14 @@ def main():
     parser = argparse.ArgumentParser(description="Pipeline Runner")
     parser.add_argument("--pipeline", help="Path to pipeline YAML")
     parser.add_argument("--due", action="store_true",
-                        help="Run every cron-triggered pipeline whose schedule fired since its last run")
+                        help="Run every cron pipeline whose schedule fired since its last run")
     parser.add_argument("--list", action="store_true", dest="list_pipelines",
                         help="List pipelines with trigger and due status")
     parser.add_argument("--pipelines-dir", default=str(REPO_ROOT / "pipelines"),
-                        help="Pipelines directory for --due/--list (default: <repo>/pipelines)")
+                        help="Pipelines dir for --due/--list (default: <repo>/pipelines)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would run")
-    parser.add_argument("--data-dir", help=f"Data directory (default: ${{{DATA_DIR_ENV}}} or <repo>/data)")
+    parser.add_argument("--data-dir",
+                        help=f"Data directory (default: ${{{DATA_DIR_ENV}}} or <repo>/data)")
     args = parser.parse_args()
 
     if args.list_pipelines:
